@@ -122,7 +122,7 @@ def _get_plugin(gl=False):
 
     # Compile and load.
     source_paths = [os.path.join(os.path.dirname(__file__), fn) for fn in source_files]
-    torch.utils.cpp_extension.load(name=plugin_name, sources=source_paths, extra_cflags=common_opts+cc_opts, extra_cuda_cflags=common_opts+['-lineinfo'], extra_ldflags=ldflags, with_cuda=True, verbose=False)
+    torch.utils.cpp_extension.load(name=plugin_name, sources=source_paths, extra_cflags=common_opts+cc_opts, extra_cuda_cflags=common_opts+['-lineinfo'], extra_include_paths=[os.environ.get("CUDA_INCLUDE", "")], extra_ldflags=ldflags+["-L" + os.environ.get("CUDA_LIB", "")], with_cuda=True, verbose=True)
 
     # Import, cache, and return the compiled module.
     _cached_plugin[gl] = importlib.import_module(plugin_name)
@@ -151,7 +151,7 @@ def set_log_level(level):
     The default log level is 1.
 
     Args:
-      level: New log level as integer. Internal nvdiffrast messages of this 
+      level: New log level as integer. Internal nvdiffrast messages of this
              severity or higher will be printed, while messages of lower
              severity will be silent.
     '''
@@ -428,13 +428,13 @@ def interpolate(attr, rast, tri, rast_db=None, diff_attrs=None):
     will be contiguous and reside in GPU memory.
 
     Args:
-        attr: Attribute tensor with dtype `torch.float32`. 
-              Shape is [num_vertices, num_attributes] in range mode, or 
+        attr: Attribute tensor with dtype `torch.float32`.
+              Shape is [num_vertices, num_attributes] in range mode, or
               [minibatch_size, num_vertices, num_attributes] in instanced mode.
               Broadcasting is supported along the minibatch axis.
         rast: Main output tensor from `rasterize()`.
         tri: Triangle tensor with shape [num_triangles, 3] and dtype `torch.int32`.
-        rast_db: (Optional) Tensor containing image-space derivatives of barycentrics, 
+        rast_db: (Optional) Tensor containing image-space derivatives of barycentrics,
                  i.e., the second output tensor from `rasterize()`. Enables computing
                  image-space derivatives of attributes.
         diff_attrs: (Optional) List of attribute indices for which image-space
@@ -634,7 +634,7 @@ def texture_construct_mip(tex, max_mip_level=None, cube_mode=False):
         cube_mode: Must be set to True if `tex` specifies a cube map texture.
 
     Returns:
-        An opaque object containing the mipmap stack. This can be supplied in a call to `texture()` 
+        An opaque object containing the mipmap stack. This can be supplied in a call to `texture()`
         in the `mip` argument.
     """
 
@@ -712,7 +712,7 @@ def antialias(color, rast, pos, tri, topology_hash=None, pos_gradient_boost=1.0)
 def antialias_construct_topology_hash(tri):
     """Construct a topology hash for a triangle tensor.
 
-    This function can be used for constructing a topology hash for a triangle tensor that is 
+    This function can be used for constructing a topology hash for a triangle tensor that is
     known to remain constant. This avoids reconstructing it every time `antialias()` is called.
 
     Args:
@@ -720,7 +720,7 @@ def antialias_construct_topology_hash(tri):
              GPU memory.
 
     Returns:
-        An opaque object containing the topology hash. This can be supplied in a call to 
+        An opaque object containing the topology hash. This can be supplied in a call to
         `antialias()` in the `topology_hash` argument.
     """
     assert isinstance(tri, torch.Tensor)
